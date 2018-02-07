@@ -4,9 +4,9 @@ const {
   exec
 } = require('child_process');
 // const BASE_URL = 'http://127.0.0.1:8080/api/';
-const HOST = 'http://104.225.152.241';
-const BASE_URL = 'http://104.225.152.241:8080/api';
-
+const HOST = 'http://127.0.0.1';
+const BASE_URL = 'http://127.0.0.1:8080/api';
+const STARED_SERVERS = [];
 /**
  * 启动服务
  * @param {*} req 
@@ -15,30 +15,50 @@ const BASE_URL = 'http://104.225.152.241:8080/api';
 async function startServer(req, res) {
   const name = req.query.name ? req.query.name : 'name';
   const streamUrl = req.query.streamUrl;
-  const port = 7000 + Math.round(Math.random() * 10) * 10 + Math.round(Math.random() * 10)
-
-  const stream = new Stream({
-    name,
-    streamUrl,
-    wsPort: port
-  });
-
+  // 查找已启动的rtsp视频转换服务
+  const startedServer = STARED_SERVERS.find(streaServer => streaServer.streamUrl === streamUrl);
+  const port = startedServer ? startedServer.port : 7000 + Math.round(Math.random() * 10) * 10 + Math.round(Math.random() * 10);
+  // 查找当前HOST的集群是否已经存在
   let clusters = await searchCluster(`videoServerIp:"${HOST}"`);
+  let cluster = clusters[0];
+  let stream = startedServer && startedServer.stream;
+  console.log(STARED_SERVERS)
+  if (!startedServer) {
+    stream = new Stream({
+      name,
+      streamUrl,
+      wsPort: port
+    });
+    stream.once('camdata', () => {
+      res.jsonp({
+        data: {
+          port,
+          wsUrl: `${HOST.replace(/http/, 'ws')}:${port}`,
+          cluster,
+          pid: stream.mpeg1Muxer.stream.pid
+        }
+      });
+    });
+
+    STARED_SERVERS.push({
+      port,
+      wsUrl: `${HOST.replace(/http/, 'ws')}:${port}`,
+      stream,
+      streamUrl,
+      cluster,
+      pid: stream.mpeg1Muxer.stream.pid
+    });
+  } else {
+    res.jsonp({data: { wsUrl: startedServer.wsUrl }});
+  }
   if (clusters.length > 0) {
-    cluster = await updateCluster(Object.assign(clusters[0], { videoChannelNumber : clusters[0].videoChannelNumber + 1 }))
+    cluster = await updateCluster(Object.assign(cluster, { videoChannelNumber : cluster.videoChannelNumber + 1 }))
   } else {
     cluster = await createCluster(HOST, 'rtsp-server', HOST, 'ctec', 0, HOST, 'root', process.env.PORT || '3000', 'root');
   }
   
   // stream.mpeg1Muxer.stream.kill();
-  res.send({
-    data: {
-      port,
-      wsUrl: `${HOST}:${port}`,
-      cluster,
-      pid: stream.mpeg1Muxer.stream.pid
-    }
-  });
+  
 
 }
 
@@ -55,7 +75,7 @@ function stopServer(req, res) {
       res.send(err)
     } else {
       console.log('子进程:', pid, '进程关闭成功');
-      res.send({
+      res.jsonp({
         data: {
           pid
         }
@@ -115,7 +135,6 @@ async function updateCluster(cluster) {
       Authorization
     }
   }
-  console.log(cluster)
   const res = await axios.put(`${BASE_URL}/clusters`, cluster, options);
   return res.data;
 }
