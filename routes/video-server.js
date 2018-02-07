@@ -39,7 +39,10 @@ async function startServer(req, res) {
         }
       });
     });
-
+    stream.mpeg1Muxer.on('ffmpegError', (error) => {
+      // todo 重启websocket
+      console.error('websocket视频解析服务出错', error);
+    });
     STARED_SERVERS.push({
       port,
       wsUrl: `${HOST.replace(/http/, 'ws')}:${port}`,
