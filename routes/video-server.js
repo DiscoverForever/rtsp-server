@@ -41,7 +41,12 @@ async function startServer(req, res) {
     });
     stream.mpeg1Muxer.on('ffmpegError', (error) => {
       // todo 重启websocket
-      console.error('websocket视频解析服务出错', error);
+      console.error('websocket视频解析服务出错', error.toString());
+    });
+    stream.on('camdata', (data) => {
+      if (data.toString().indexOf('audio:0kB')) {
+        // todo 重启websocket
+      }
     });
     STARED_SERVERS.push({
       port,
