@@ -1,7 +1,8 @@
 const axios = require('axios');
 const Stream = require('node-rtsp-stream');
 const {
-  exec
+  exec,
+  spawn
 } = require('child_process');
 // const BASE_URL = 'http://127.0.0.1:8080/api/';
 const HOST = 'http://127.0.0.1';
@@ -30,6 +31,10 @@ async function startServer(req, res) {
       wsPort: port
     });
     stream.once('camdata', async () => {
+      console.log('pid', stream.mpeg1Muxer.stream.pid)
+      // 模拟异常中断
+      // stream.mpeg1Muxer.stream.kill();
+
       res.jsonp({
         data: {
           port,
@@ -43,15 +48,14 @@ async function startServer(req, res) {
       console.error('error', error.toString());
       // todo 重启websocket
       if (error.toString().indexOf('Lsize=') > 0) {
-        console.error('websocket视频解析服务出错', error.toString(), error.toString().indexOf('Lsize='));
-        await killThreadByPid(stream.mpeg1Muxer.stream.pid);
-        // stream.startMpeg1Stream();
-        // stream.pipeStreamToSocketServer();
-        stream = new Stream({
-          name,
-          streamUrl,
-          wsPort: port
+        // await killThreadByPid(stream.mpeg1Muxer.stream.pid)
+        stream.mpeg1Muxer.stream = spawn("ffmpeg", ["-rtsp_transport", "tcp", "-i", streamUrl, '-f', 'mpeg1video', '-b:v', '800k', '-r', '30', '-'], {
+          detached: false
         });
+        stream.mpeg1Muxer.inputStreamStarted = true;
+        console.error('websocket视频解析服务出错', error.toString(), error.toString().indexOf('Lsize='));
+        
+        
       } else if (error.toString().indexOf('Network is unreachable') > 0) {
         console.error('网络连接失败', error.toString());
       }
