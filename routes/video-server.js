@@ -49,10 +49,11 @@ async function startServer(req, res) {
       // todo 重启websocket
       if (error.toString().indexOf('Lsize=') > 0) {
         // await killThreadByPid(stream.mpeg1Muxer.stream.pid)
-        stream.mpeg1Muxer.stream = spawn("ffmpeg", ["-rtsp_transport", "tcp", "-i", streamUrl, '-f', 'mpeg1video', '-b:v', '800k', '-r', '30', '-'], {
-          detached: false
-        });
-        stream.mpeg1Muxer.inputStreamStarted = true;
+        // stream.mpeg1Muxer.stream = spawn("ffmpeg", ["-rtsp_transport", "tcp", "-i", streamUrl, '-f', 'mpeg1video', '-b:v', '800k', '-r', '30', '-'], {
+        //   detached: false
+        // });
+        stream.startMpeg1Stream();
+        stream.inputStreamStarted = false;
         console.error('websocket视频解析服务出错', error.toString(), error.toString().indexOf('Lsize='));
         
         
