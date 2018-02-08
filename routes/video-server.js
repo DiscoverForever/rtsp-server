@@ -29,7 +29,7 @@ async function startServer(req, res) {
       streamUrl,
       wsPort: port
     });
-    stream.once('camdata', () => {
+    stream.once('camdata', async () => {
       res.jsonp({
         data: {
           port,
@@ -39,13 +39,28 @@ async function startServer(req, res) {
         }
       });
     });
-    stream.mpeg1Muxer.on('ffmpegError', (error) => {
+    stream.mpeg1Muxer.on('ffmpegError', async (error) => {
+      console.error('error', error.toString());
       // todo 重启websocket
-      console.error('websocket视频解析服务出错', error.toString());
+      if (error.toString().indexOf('Lsize=') > 0) {
+        console.error('websocket视频解析服务出错', error.toString(), error.toString().indexOf('Lsize='));
+        await killThreadByPid(stream.mpeg1Muxer.stream.pid);
+        // stream.startMpeg1Stream();
+        // stream.pipeStreamToSocketServer();
+        stream = new Stream({
+          name,
+          streamUrl,
+          wsPort: port
+        });
+      } else if (error.toString().indexOf('Network is unreachable') > 0) {
+        console.error('网络连接失败', error.toString());
+      }
     });
     stream.on('camdata', (data) => {
-      if (data.toString().indexOf('audio:0kB')) {
+      if (data.toString().indexOf('audio:0kB') > 0) {
+        console.log('视频流太小转换失败');
         // todo 重启websocket
+        // console.error('重启websocket', data.toString(), data.toString().indexOf('audio:0kB'))
       }
     });
     STARED_SERVERS.push({
@@ -64,9 +79,6 @@ async function startServer(req, res) {
   } else {
     cluster = await createCluster(HOST, 'rtsp-server', HOST, 'ctec', 0, HOST, 'root', process.env.PORT || '3000', 'root');
   }
-  
-  // stream.mpeg1Muxer.stream.kill();
-  
 
 }
 
@@ -74,22 +86,33 @@ async function startServer(req, res) {
  * 关闭服务
  * @param {*} port 
  */
-function stopServer(req, res) {
+async function stopServer(req, res) {
   const pid = req.query.pid;
-  exec(`kill -9 ${pid}`, (err, stdout, stderr) => {
-    if (err) {
-      console.error('子进程:', pid, '进程关闭失败', err.message);
-      res.status(500);
-      res.send(err)
-    } else {
-      console.log('子进程:', pid, '进程关闭成功');
-      res.jsonp({
-        data: {
-          pid
-        }
-      });
-    }
-  });
+  try {
+    let res = await killThreadByPid(pid);
+    res.jsonp({
+      data: {
+        pid
+      }
+    });
+  } catch (error) {
+    res.status(500);
+    res.send(error)
+  }
+}
+
+function killThreadByPid(pid) {
+  return new Promise((resolve, reject) => {
+    exec(`kill -9 ${pid}`, (err, stdout, stderr) => {
+      if (err) {
+        console.error('子进程:', pid, '进程关闭失败', err.message);
+        reject(err.message);
+      } else {
+        console.log('子进程:', pid, '进程关闭成功');
+        resolve(pid);
+      }   
+    });
+  }); 
 }
 
 /**
