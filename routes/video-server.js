@@ -30,6 +30,7 @@ async function startServer(req, res) {
       streamUrl,
       wsPort: port
     });
+    listenAndHandleErrorStream(stream);
     stream.once('camdata', async () => {
       console.log('pid', stream.mpeg1Muxer.stream.pid)
       // 模拟异常中断
@@ -44,30 +45,9 @@ async function startServer(req, res) {
         }
       });
     });
-    stream.mpeg1Muxer.on('ffmpegError', async (error) => {
-      console.error('error', error.toString());
-      // todo 重启websocket
-      if (error.toString().indexOf('Lsize=') > 0) {
-        // await killThreadByPid(stream.mpeg1Muxer.stream.pid)
-        // stream.mpeg1Muxer.stream = spawn("ffmpeg", ["-rtsp_transport", "tcp", "-i", streamUrl, '-f', 'mpeg1video', '-b:v', '800k', '-r', '30', '-'], {
-        //   detached: false
-        // });
-        stream.startMpeg1Stream();
-        stream.inputStreamStarted = false;
-        console.error('websocket视频解析服务出错', error.toString(), error.toString().indexOf('Lsize='));
-        
-        
-      } else if (error.toString().indexOf('Network is unreachable') > 0) {
-        console.error('网络连接失败', error.toString());
-      }
-    });
-    stream.on('camdata', (data) => {
-      if (data.toString().indexOf('audio:0kB') > 0) {
-        console.log('视频流太小转换失败');
-        // todo 重启websocket
-        // console.error('重启websocket', data.toString(), data.toString().indexOf('audio:0kB'))
-      }
-    });
+    // stream.on('camdata', async (data) => {
+    //   console.log(data.toString())
+    // });
     STARED_SERVERS.push({
       port,
       wsUrl: `${HOST.replace(/http/, 'ws')}:${port}`,
@@ -204,6 +184,20 @@ async function getJWT(username = 'admin', password = 'admin') {
   }
   return `Bearer ${res.data.id_token}`;
 }
+
+function listenAndHandleErrorStream(stream) {
+  stream.mpeg1Muxer.on('ffmpegError', async (error) => {
+    console.error('FATAL ERROR', error.toString())
+    if (error.toString().indexOf('Lsize=') > 0) {
+      console.error('websocket视频解析服务出错', error.toString(), error.toString().indexOf('Lsize='));
+      const newStream = stream.startMpeg1Stream();
+      listenAndHandleErrorStream(newStream);
+    } else if (error.toString().indexOf('Network is unreachable') > 0) {
+      console.error('网络连接失败', error.toString());
+    }
+  });
+}
+
 
 module.exports = {
   startServer,
