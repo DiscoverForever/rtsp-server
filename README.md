@@ -1,2 +1,2 @@
 # rtsp-server
-CTEC rtsp server 
+CETC rtsp server 
