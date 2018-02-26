@@ -62,7 +62,7 @@ async function startServer(req, res) {
   if (clusters.length > 0) {
     cluster = await updateCluster(Object.assign(cluster, { videoChannelNumber : cluster.videoChannelNumber + 1 }))
   } else {
-    cluster = await createCluster(HOST, 'rtsp-server', HOST, 'ctec', 0, HOST, 'root', process.env.PORT || '3000', 'root');
+    cluster = await createCluster(HOST, 'rtsp-server', HOST, 'cetc', 0, HOST, 'root', process.env.PORT || '3000', 'root');
   }
 
 }
