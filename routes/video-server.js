@@ -8,6 +8,7 @@ const {
 const HOST = 'http://127.0.0.1';
 const BASE_URL = 'http://127.0.0.1:8080/api';
 const STARED_SERVERS = [];
+let BASE_PORT = 7000;
 /**
  * 启动服务
  * @param {*} req 
@@ -18,7 +19,8 @@ async function startServer(req, res) {
   const streamUrl = req.query.streamUrl;
   // 查找已启动的rtsp视频转换服务
   const startedServer = STARED_SERVERS.find(streaServer => streaServer.streamUrl === streamUrl);
-  const port = startedServer ? startedServer.port : 7000 + Math.round(Math.random() * 10) * 10 + Math.round(Math.random() * 10);
+  const port = startedServer ? startedServer.port : BASE_PORT ++;
+  
   // 查找当前HOST的集群是否已经存在
   let clusters = await searchCluster(`videoServerIp:"${HOST}"`);
   let cluster = clusters[0];
