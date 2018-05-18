@@ -22,8 +22,8 @@ async function startServer(req, res) {
   const port = startedServer ? startedServer.port : BASE_PORT ++;
   
   // 查找当前HOST的集群是否已经存在
-  let clusters = await searchCluster(`videoServerIp:"${HOST}"`);
-  let cluster = clusters[0];
+  // let clusters = await searchCluster(`videoServerIp:"${HOST}"`);
+  // let cluster = clusters[0];
   let stream = startedServer && startedServer.stream;
   console.log(STARED_SERVERS)
   if (!startedServer) {
@@ -42,7 +42,7 @@ async function startServer(req, res) {
         data: {
           port,
           wsUrl: `${HOST.replace(/http/, 'ws')}:${port}`,
-          cluster,
+          // cluster,
           pid: stream.mpeg1Muxer.stream.pid
         }
       });
@@ -55,17 +55,17 @@ async function startServer(req, res) {
       wsUrl: `${HOST.replace(/http/, 'ws')}:${port}`,
       stream,
       streamUrl,
-      cluster,
+      // cluster,
       pid: stream.mpeg1Muxer.stream.pid
     });
   } else {
     res.jsonp({data: { wsUrl: startedServer.wsUrl }});
   }
-  if (clusters.length > 0) {
-    cluster = await updateCluster(Object.assign(cluster, { videoChannelNumber : cluster.videoChannelNumber + 1 }))
-  } else {
-    cluster = await createCluster(HOST, 'rtsp-server', HOST, 'cetc', 0, HOST, 'root', process.env.PORT || '3000', 'root');
-  }
+  // if (clusters.length > 0) {
+  //   cluster = await updateCluster(Object.assign(cluster, { videoChannelNumber : cluster.videoChannelNumber + 1 }))
+  // } else {
+  //   cluster = await createCluster(HOST, 'rtsp-server', HOST, 'cetc', 0, HOST, 'root', process.env.PORT || '3000', 'root');
+  // }
 
 }
 
