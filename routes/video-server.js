@@ -4,9 +4,8 @@ const {
   exec,
   spawn
 } = require('child_process');
-// const BASE_URL = 'http://127.0.0.1:8080/api/';
-const HOST = 'http://127.0.0.1';
-const BASE_URL = 'http://127.0.0.1:8080/api';
+const HOST = `http://${getIPAdress()}:8080`;
+const BASE_URL = `http://${getIPAdress()}:8080/api`;
 const STARED_SERVERS = [];
 let BASE_PORT = 7000;
 /**
@@ -200,6 +199,21 @@ function listenAndHandleErrorStream(stream) {
   });
 }
 
+/**
+ * 获取本机IP地址
+ */
+function getIPAdress(){  
+  var interfaces = require('os').networkInterfaces();  
+  for(var devName in interfaces){  
+        var iface = interfaces[devName];  
+        for(var i=0;i<iface.length;i++){  
+             var alias = iface[i];  
+             if(alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal){  
+                   return alias.address;  
+             }  
+        }  
+  }  
+}
 
 module.exports = {
   startServer,
