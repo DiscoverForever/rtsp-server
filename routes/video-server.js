@@ -4,7 +4,7 @@ const {
   exec,
   spawn
 } = require('child_process');
-const HOST = `http://${getIPAdress()}:8080`;
+const HOST = `http://${getIPAdress()}`;
 const BASE_URL = `http://${getIPAdress()}:8080/api`;
 const STARED_SERVERS = [];
 let BASE_PORT = 7000;
